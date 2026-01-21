@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Join & Win</title>
+<link rel="icon" type="image/x-icon" href="logo.jpg">
+
+<style>
+body{
+  margin:0;
+  background:#0f1220;
+  color:#fff;
+  font-family:system-ui;
+}
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:15px;
+}
+.card{
+  background:#181c2f;
+  padding:15px;
+  border-radius:14px;
+}
+h2{text-align:center}
+input,button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
+  font-size:16px;
+}
+button{
+  background:#00c853;
+  color:#fff;
+  cursor:pointer;
+}
+button:disabled{
+  background:#555;
+}
+img{
+  width:100%;
+  border-radius:12px;
+  margin-top:10px;
+}
+.counter{
+  text-align:center;
+  margin:10px 0;
+  font-weight:bold;
+}
+.lang{
+  text-align:center;
+  margin-bottom:10px;
+}
+.lang button{
+  width:auto;
+  padding:6px 12px;
+  font-size:14px;
+  background:#2a2f4a;
+}
+.small{
+  font-size:13px;
+  color:#aaa;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="lang">
+  <button onclick="setLang('km')">🇰🇭 ខ្មែរ</button>
+  <button onclick="setLang('en')">🇺🇸 English</button>
+</div>
+
+<div class="card">
+  <h2 id="title">ចូលរួមទិញ AirPods Pro</h2>
+
+  <div class="counter">
+    <span id="confirmed">0</span> / 19
+  </div>
+
+  <p id="payText" style="text-align:center">
+    សូមបង់ <b>$1</b> តាម KHQR
+  </p>
+
+  <img src="khqr.jpg" alt="KHQR">
+
+  <input id="name" placeholder="ឈ្មោះ">
+  <input id="phone" placeholder="លេខទូរស័ព្ទ">
+  <input type="file" id="file" accept="image/*">
+
+  <button id="joinBtn">បញ្ជូន</button>
+  <p id="msg" class="small"></p>
+
+  <p class="small">
+    ដោយចូលរួម អ្នកយល់ព្រមនឹង
+    <a href="terms.html" style="color:#00c853">លក្ខខណ្ឌ</a>
+  </p>
+</div>
+
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+<script>
+/* 🔥 Firebase Config (FIXED) */
+firebase.initializeApp({
+  apiKey: "AIzaSyBUkvk2DWbLaIdNiSxu9CHHhnaU8jQKH_4",
+  authDomain: "join-to-buy.firebaseapp.com",
+  projectId: "join-to-buy",
+  storageBucket: "join-to-buy.firebasestorage.app"
+});
+
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+const TARGET = 19;
+let currentLang = "km";
+
+/* 🔄 Language */
+const text = {
+  km:{
+    title:"ចូលរួមទិញ AirPods Pro",
+    pay:"សូមបង់ $1 តាម KHQR",
+    name:"ឈ្មោះ",
+    phone:"លេខទូរស័ព្ទ",
+    submit:"បញ្ជូន",
+    closed:"ការចូលរួមបានបិទ",
+    wait:"សូមរង់ចាំការអនុម័ត",
+    fill:"សូមបំពេញទាំងអស់",
+    dup:"លេខនេះបានចូលរួមរួចហើយ"
+  },
+  en:{
+    title:"Join To Buy AirPods Pro",
+    pay:"Pay $1 via KHQR",
+    name:"Your Name",
+    phone:"Phone Number",
+    submit:"Submit",
+    closed:"Joining closed",
+    wait:"Awaiting confirmation",
+    fill:"Please fill all fields",
+    dup:"This phone already joined"
+  }
+};
+
+function setLang(l){
+  currentLang=l;
+  title.innerText=text[l].title;
+  payText.innerText=text[l].pay;
+  document.getElementById("name").placeholder=text[l].name;
+  document.getElementById("phone").placeholder=text[l].phone;
+  joinBtn.innerText=text[l].submit;
+}
+
+/* 📊 Counter + Lock */
+db.collection("entries")
+.where("status","==","confirmed")
+.onSnapshot(s=>{
+  confirmed.innerText=s.size;
+  if(s.size>=TARGET){
+    joinBtn.disabled=true;
+    msg.innerText=text[currentLang].closed;
+  }
+});
+
+/* 📤 Join (FIXED + SAFE) */
+document.getElementById("joinBtn").onclick = join;
+
+async function join(){
+  const nameEl = document.getElementById("name");
+  const phoneEl = document.getElementById("phone");
+  const fileEl = document.getElementById("file");
+
+  const n = nameEl.value.trim();
+  const p = phoneEl.value.trim();
+  const f = fileEl.files[0];
+
+  if(!n || !p || !f){
+    alert(text[currentLang].fill);
+    return;
+  }
+
+  joinBtn.disabled = true;
+  msg.innerText = "⏳ Uploading...";
+
+  const dup = await db.collection("entries").where("phone","==",p).get();
+  if(!dup.empty){
+    alert(text[currentLang].dup);
+    joinBtn.disabled = false;
+    return;
+  }
+
+  const ref = storage.ref("screenshots/"+p+"_"+Date.now());
+  await ref.put(f);
+  const url = await ref.getDownloadURL();
+
+  await db.collection("entries").add({
+    product:"AirPods Pro",
+    name:n,
+    phone:p,
+    screenshot:url,
+    status:"pending",
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  msg.innerText=text[currentLang].wait;
+  nameEl.value="";
+  phoneEl.value="";
+  fileEl.value="";
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<link rel="icon" type="image/x-icon" href="logo.jpg">
+<style>
+body{background:#0f1220;color:#fff;font-family:Arial;margin:0}
+header{padding:15px;background:#181c2f;text-align:center}
+.card{background:#181c2f;padding:12px;margin:12px;border-radius:10px}
+button{
+  background:#00c853;
+  border:none;
+  padding:8px 12px;
+  color:#fff;
+  margin-top:8px;
+  border-radius:6px;
+  cursor:pointer;
+}
+img{width:100%;max-width:300px;border-radius:8px}
+.danger{background:#d32f2f}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>🔐 Admin Panel</h2>
+<button onclick="pickWinner()">🎉 Pick Winner</button>
+<p id="winnerText"></p>
+</header>
+
+<h3 style="padding-left:12px">Pending Payments</h3>
+<div id="list"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* 🔥 Firebase Config */
+firebase.initializeApp({
+  apiKey: "AIzaSyBUkvk2DWbLaIdNiSxu9CHHhnaU8jQKH_4",
+  authDomain: "join-to-buy.firebaseapp.com",
+  projectId: "join-to-buy"
+});
+
+const db = firebase.firestore();
+
+/* 🔐 Protect page */
+firebase.auth().onAuthStateChanged(u=>{
+  if(!u) location.href="admin-login.html";
+});
+
+/* 📌 Show pending entries */
+db.collection("entries")
+.where("status","==","pending")
+.onSnapshot(s=>{
+  list.innerHTML="";
+  s.forEach(d=>{
+    const e=d.data();
+    list.innerHTML+=`
+      <div class="card">
+        <b>${e.name}</b> (${e.phone})<br>
+        <img src="${e.screenshot}">
+        <br>
+        <button onclick="approve('${d.id}')">Approve</button>
+      </div>
+    `;
+  });
+});
+
+/* ✅ Approve payment */
+function approve(id){
+  db.collection("entries").doc(id).update({
+    status:"confirmed"
+  });
+}
+
+/* 🎉 Pick Winner (ONLY ONCE) */
+async function pickWinner(){
+
+  const winnerSnap = await db.collection("winner").limit(1).get();
+  if(!winnerSnap.empty){
+    alert("Winner already selected!");
+    return;
+  }
+
+  const snap = await db.collection("entries")
+    .where("status","==","confirmed").get();
+
+  if(snap.empty){
+    alert("No confirmed users");
+    return;
+  }
+
+  const docs = snap.docs;
+  const randomDoc = docs[Math.floor(Math.random()*docs.length)];
+  const win = randomDoc.data();
+
+  await db.collection("winner").add({
+    name: win.name,
+    phone: win.phone,
+    product: win.product,
+    pickedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  winnerText.innerText = `🏆 Winner: ${win.name} (${win.phone})`;
+}
+</script>
+
+</body>
+</html>
