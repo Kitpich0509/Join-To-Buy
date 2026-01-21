@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join & Win</title>
+<link rel="icon" type="image/x-icon" href="logo.jpg">
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#0f1220;
+  color:#fff;
+}
+header{
+  background:#181c2f;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.lang button{
+  background:none;
+  border:1px solid #00c853;
+  color:#00c853;
+  padding:5px 10px;
+  margin-left:5px;
+  border-radius:5px;
+}
+section{
+  padding:15px;
+  max-width:900px;
+  margin:auto;
+}
+.card{
+  background:#181c2f;
+  border-radius:12px;
+  padding:15px;
+  margin-top:15px;
+}
+.images{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+}
+.images img{
+  width:120px;
+  border-radius:10px;
+  cursor:pointer;
+}
+button.main{
+  background:#00c853;
+  border:none;
+  color:#fff;
+  padding:10px;
+  border-radius:8px;
+  font-size:16px;
+  width:100%;
+  margin-top:10px;
+}
+.small{color:#aaa;font-size:14px}
+.progress{
+  margin-top:10px;
+  font-weight:bold;
+}
+
+/* Fullscreen image */
+#viewer{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.9);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+#viewer img{
+  max-width:95%;
+  max-height:95%;
+  border-radius:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo.jpg" style="width: 50px; height: 50px;">
+  <h1 id="title" style="color: darkgoldenrod; font-size: 25px; font-style: oblique;"> Join To Buy</h1>
+  <div class="lang">
+    <button onclick="setLang('km')">🇰🇭 ខ្មែរ</button>
+    <button onclick="setLang('en')">🇺🇸 English</button>
+  </div>
+</header>
+
+<section>
+<h3 id="howTitle"></h3>
+<p id="s1"></p>
+<p id="s2"></p>
+<p id="s3"></p>
+<p id="s4"></p>
+<p id="s5"></p>
+<p id="s6" style="color:#fd0202;"></p>
+
+<h3 id="productTitle"></h3>
+
+<div class="card">
+  <div class="images">
+    <img src="img/airport1.jpg" onclick="view(this.src)">
+    <img src="img/airport2.jpg" onclick="view(this.src)">
+    <img src="img/airport3.jpg" onclick="view(this.src)">
+    <img src="img/airport4.jpg" onclick="view(this.src)">
+    <img src="img/airport5.jpg" onclick="view(this.src)">
+  </div>
+
+  <h4>AirPods Pro</h4>
+  <p class="small" id="origin" style="color: aquamarine;"></p>
+  <p class="small" id="price"></p>
+  <p class="small" id="target"></p>
+
+  <div class="progress">
+    👥 <span id="joined">0</span> / 19 joined
+  </div>
+
+  <button class="main" onclick="location.href='join.html'" id="joinBtn"></button>
+</div>
+
+<span id="joinedname"></span>
+<br/><br/>
+<p class="small">
+  <span id="termsText"></span>
+  <a href="terms.html" style="color:#00c853; text-decoration: none;" id="termsLink"></a>
+
+  <a href="about.html" style="color:#0bf88a; text-decoration: none; padding:10px; border-radius:8px; margin-top:10px;" id="about"></a>
+</p>
+<p class="small" id="contact" style="color: rgb(0, 174, 255);"></p>
+<ol>
+  <li style="display: block;">
+    <a href="https://t.me/jointobuygroup" target="_blank" style="color: rgb(0, 174, 255); text-decoration: none;">
+      <img src="tglogo.png" alt="Telegram Group" style="width: 25px; height: 25px; "> Tg Group</a>
+  </li>
+  <li style="display: block;">
+    <a href="https://t.me/jointobuyservice" target="_blank" style="color: rgb(0, 174, 255); text-decoration: none;">
+      <img src="tglogo.png" alt="Customer service" style="width: 25px; height: 25px; "> Customer service</a>
+  </li>
+  <li style="display: block;">
+    <a href="https://www.facebook.com/profile.php?id=61586928210099" target="_blank" style="color: rgb(0, 174, 255); text-decoration: none;">
+      <img src="fblogo.webp" alt="Facebook Page" style="width: 25px; height: 25px; "> Facebook Page</a>
+  </li>
+</ol>
+</section>
+
+<!-- Fullscreen Viewer -->
+<div id="viewer" onclick="this.style.display='none'">
+  <img id="viewerImg">
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyBUkvk2DWbLaIdNiSxu9CHHhnaU8jQKH_4",
+  authDomain: "join-to-buy.firebaseapp.com",
+  projectId: "join-to-buy"
+});
+const db = firebase.firestore();
+const TARGET = 19;
+
+/* Live progress */
+db.collection("entries")
+.where("status","==","confirmed")
+.onSnapshot(s=>{
+  joined.innerText = s.size;
+});
+
+/* Image viewer */
+function view(src){
+  viewerImg.src = src;
+  viewer.style.display = "flex";
+}
+
+/* Language */
+const text={
+  en:{
+    title:"Join To Buy",
+    howTitle:"How it works",
+    s1:"1️⃣ Choose a product",
+    s2:"2️⃣ Pay $1 via KHQR",
+    s3:"3️⃣ Upload payment screenshot",
+    s4:"4️⃣ Wait for admin confirmation",
+    s5:"5️⃣ Winner is randomly selected",
+    s6:"* Only one entry per person per product",
+    productTitle:"Available Product",
+    origin:"Original price: $16.25+ shipping: $2+ addmin fee: $1",
+    price:"Join price: $1",
+    target:"Target: 19 participants",
+    joinBtn:"Join Now",
+    joinedname:"People who have joined:",
+    termsText:"By joining you agree to",
+    termsLink:"Terms & Conditions",
+    about:"  About Us",
+    contact:"Contact Us"
+  },
+  km:{
+    title:"ចូលរួមទិញ",
+    howTitle:"របៀបចូលរួម",
+    s1:"1️ ជ្រើសរើសផលិតផល",
+    s2:"2️ បង់ប្រាក់ $1 តាម KHQR",
+    s3:"3️ ផ្ញើ Screenshot ការបង់ប្រាក់",
+    s4:"4️ រង់ចាំការបញ្ជាក់",
+    s5:"5️ ជ្រើសអ្នកឈ្នះ 1 នាក់",
+    s6:"* មួយនាក់អាចចូលរួមបានតែម្ដងក្នុងមួយផលិតផល",
+    productTitle:"ផលិតផលដែលអាចចូលរួមបាន",
+    origin:"តម្លៃដើម៖ $16.25+ ការដឹកជញ្ជូន៖ $2+ admin fee: $1",
+    price:"តម្លៃចូលរួម៖ $1",
+    target:"គោលដៅ៖ 19 នាក់",
+    joinBtn:"ចូលរួមឥឡូវនេះ",
+    joinedname:"បញ្ជីអ្នកដែលបានចូលរួម៖",
+    termsText:"ដោយការចូលរួម អ្នកយល់ព្រមនឹង",
+    termsLink:"លក្ខខណ្ឌ និង គោលការណ៍",
+    about:" អំពីយើង",
+    contact:"ទំនាក់ទំនង"
+  }
+};
+
+function setLang(l){
+  localStorage.lang=l;
+  const t=text[l];
+  for(let k in t){
+    document.getElementById(k).innerText=t[k];
+  }
+}
+setLang(localStorage.lang || 'km');
+</script>
+
+</body>
+</html>
